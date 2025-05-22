@@ -6,6 +6,7 @@ import type { BootstrapEnvironmentProgress } from '../../../payloads/bootstrap-e
 import type { MissingContext, UpdatedContext } from '../../../payloads/context';
 import type { BuildAsset, DeployConfirmationRequest, PublishAsset, StackDeployProgress, SuccessfulDeployStackResult } from '../../../payloads/deploy';
 import type { StackDestroy, StackDestroyProgress } from '../../../payloads/destroy';
+import type { AssetBatchDeletionRequest } from '../../../payloads/gc';
 import type { HotswapDeploymentDetails, HotswapDeploymentAttempt, HotswappableChange, HotswapResult } from '../../../payloads/hotswap';
 import type { StackDetailsPayload } from '../../../payloads/list';
 import type { CloudWatchLogEvent, CloudWatchLogMonitorControlEvent } from '../../../payloads/logs-monitor';
@@ -24,28 +25,6 @@ import type { FileWatchEvent, WatchSettings } from '../../../payloads/watch';
  * - X900-X999 are reserved for results
  */
 export const IO = {
-  // Defaults (0000)
-  DEFAULT_TOOLKIT_INFO: make.info({
-    code: 'CDK_TOOLKIT_I0000',
-    description: 'Default info messages emitted from the Toolkit',
-  }),
-  DEFAULT_TOOLKIT_DEBUG: make.debug({
-    code: 'CDK_TOOLKIT_I0000',
-    description: 'Default debug messages emitted from the Toolkit',
-  }),
-  DEFAULT_TOOLKIT_WARN: make.warn({
-    code: 'CDK_TOOLKIT_W0000',
-    description: 'Default warning messages emitted from the Toolkit',
-  }),
-  DEFAULT_TOOLKIT_ERROR: make.error({
-    code: 'CDK_TOOLKIT_E0000',
-    description: 'Default error messages emitted from the Toolkit',
-  }),
-  DEFAULT_TOOLKIT_TRACE: make.trace({
-    code: 'CDK_TOOLKIT_I0000',
-    description: 'Default trace messages emitted from the Toolkit',
-  }),
-
   // warnings & errors
   CDK_TOOLKIT_W0100: make.warn({
     code: 'CDK_TOOLKIT_W0100',
@@ -362,7 +341,7 @@ export const IO = {
     description: 'Refactor execution not yet supported',
   }),
 
-  // 9: Bootstrap (9xxx)
+  // 9: Bootstrap  & gc (9xxx)
   CDK_TOOLKIT_I9000: make.info<Duration>({
     code: 'CDK_TOOLKIT_I9000',
     description: 'Provides bootstrap times',
@@ -372,6 +351,13 @@ export const IO = {
     code: 'CDK_TOOLKIT_I9100',
     description: 'Bootstrap progress',
     interface: 'BootstrapEnvironmentProgress',
+  }),
+
+  // gc (92xx)
+  CDK_TOOLKIT_I9210: make.question<AssetBatchDeletionRequest>({
+    code: 'CDK_TOOLKIT_I9210',
+    description: 'Confirm the deletion of a batch of assets',
+    interface: 'AssetBatchDeletionRequest',
   }),
 
   CDK_TOOLKIT_I9900: make.result<{ environment: cxapi.Environment }>({
@@ -500,10 +486,6 @@ export const IO = {
   }),
 
   // SDK codes
-  DEFAULT_SDK_TRACE: make.trace({
-    code: 'CDK_SDK_I0000',
-    description: 'An SDK trace message.',
-  }),
   DEFAULT_SDK_DEBUG: make.debug({
     code: 'CDK_SDK_I0000',
     description: 'An SDK debug message.',

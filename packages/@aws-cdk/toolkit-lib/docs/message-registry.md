@@ -6,11 +6,6 @@ group: Documents
 
 | Code | Description | Level | Data Interface |
 |------|-------------|-------|----------------|
-| `CDK_TOOLKIT_I0000` | Default info messages emitted from the Toolkit | `info` | n/a |
-| `CDK_TOOLKIT_I0000` | Default debug messages emitted from the Toolkit | `debug` | n/a |
-| `CDK_TOOLKIT_W0000` | Default warning messages emitted from the Toolkit | `warn` | n/a |
-| `CDK_TOOLKIT_E0000` | Default error messages emitted from the Toolkit | `error` | n/a |
-| `CDK_TOOLKIT_I0000` | Default trace messages emitted from the Toolkit | `trace` | n/a |
 | `CDK_TOOLKIT_W0100` | Credential plugin warnings | `warn` | n/a |
 | `CDK_TOOLKIT_I1000` | Provides synthesis times. | `info` | {@link Duration} |
 | `CDK_TOOLKIT_I1001` | Cloud Assembly synthesis is starting | `trace` | {@link StackSelectionDetails} |
@@ -72,6 +67,7 @@ group: Documents
 | `CDK_TOOLKIT_W8010` | Refactor execution not yet supported | `warn` | n/a |
 | `CDK_TOOLKIT_I9000` | Provides bootstrap times | `info` | {@link Duration} |
 | `CDK_TOOLKIT_I9100` | Bootstrap progress | `info` | {@link BootstrapEnvironmentProgress} |
+| `CDK_TOOLKIT_I9210` | Confirm the deletion of a batch of assets | `info` | {@link AssetBatchDeletionRequest} |
 | `CDK_TOOLKIT_I9900` | Bootstrap results on success | `result` | [cxapi.Environment](https://docs.aws.amazon.com/cdk/api/v2/docs/@aws-cdk_cx-api.Environment.html) |
 | `CDK_TOOLKIT_E9900` | Bootstrap failed | `error` | {@link ErrorPayload} |
 | `CDK_TOOLKIT_I0100` | Notices decoration (the header or footer of a list of notices) | `info` | n/a |
@@ -98,7 +94,6 @@ group: Documents
 | `CDK_ASSEMBLY_I9999` | Annotations emitted by the cloud assembly | `info` | [cxapi.SynthesisMessage](https://docs.aws.amazon.com/cdk/api/v2/docs/@aws-cdk_cx-api.SynthesisMessage.html) |
 | `CDK_ASSEMBLY_W9999` | Warnings emitted by the cloud assembly | `warn` | [cxapi.SynthesisMessage](https://docs.aws.amazon.com/cdk/api/v2/docs/@aws-cdk_cx-api.SynthesisMessage.html) |
 | `CDK_ASSEMBLY_E9999` | Errors emitted by the cloud assembly | `error` | [cxapi.SynthesisMessage](https://docs.aws.amazon.com/cdk/api/v2/docs/@aws-cdk_cx-api.SynthesisMessage.html) |
-| `CDK_SDK_I0000` | An SDK trace message. | `trace` | n/a |
 | `CDK_SDK_I0000` | An SDK debug message. | `debug` | n/a |
 | `CDK_SDK_W0000` | An SDK warning message. | `warn` | n/a |
 | `CDK_SDK_I0100` | An SDK trace. SDK traces are emitted as traces to the IoHost, but contain the original SDK logging level. | `trace` | {@link SdkTrace} |
