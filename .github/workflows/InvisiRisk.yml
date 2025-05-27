@@ -1,7 +1,6 @@
 name: AWS x InvisiRisk 
 
 on:
-  schedule:
   workflow_dispatch:
 
 permissions:
@@ -22,18 +21,6 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      - name: Set up Git
-        run: |
-          git config user.name "ir-pranesh-shrestha"
-          git config user.email "pranesh.shrestha@invisirisk.com"
-          
-      - name: Add upstream and sync fork
-        run: |
-          git remote add upstream https://github.com/aws/aws-cdk-cli.git
-          git fetch upstream
-          git checkout main
-          git merge upstream/main --no-edit
-          git push https://x-access-token:${{ secrets.MY_PAT }}@github.com/ir-pranesh-shrestha/aws-cdk-cli dev
           
       - name: Setup PSE
         uses: invisirisk/pse-action@latest
