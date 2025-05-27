@@ -33,7 +33,7 @@ jobs:
           git fetch upstream
           git checkout main
           git merge upstream/main --no-edit
-          git push https://x-access-token:${{ secrets.MY_PAT }}@github.com/ir-pranesh-shrestha/aws-cdk-cli main
+          git push https://x-access-token:${{ secrets.MY_PAT }}@github.com/ir-pranesh-shrestha/aws-cdk-cli dev
           
       - name: Setup PSE
         uses: invisirisk/pse-action@latest
