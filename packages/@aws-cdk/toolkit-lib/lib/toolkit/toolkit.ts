@@ -20,12 +20,13 @@ import { BootstrapSource } from '../actions/bootstrap';
 import { AssetBuildTime, type DeployOptions } from '../actions/deploy';
 import {
   buildParameterMap,
-  type ExtendedDeployOptions,
+  type PrivateDeployOptions,
   removePublishedAssetsFromWorkGraph,
 } from '../actions/deploy/private';
 import { type DestroyOptions } from '../actions/destroy';
 import type { DiffOptions } from '../actions/diff';
 import { appendObject, prepareDiff } from '../actions/diff/private';
+import type { DriftOptions, DriftResult } from '../actions/drift';
 import { type ListOptions } from '../actions/list';
 import type { MappingGroup, RefactorOptions } from '../actions/refactor';
 import { type RollbackOptions } from '../actions/rollback';
@@ -33,22 +34,25 @@ import { type SynthOptions } from '../actions/synth';
 import type { WatchOptions } from '../actions/watch';
 import { patternsArrayForWatch } from '../actions/watch/private';
 import { BaseCredentials, type SdkConfig } from '../api/aws-auth';
-import { makeRequestHandler } from '../api/aws-auth/awscli-compatible';
+import { sdkRequestHandler } from '../api/aws-auth/awscli-compatible';
 import type { SdkProviderServices } from '../api/aws-auth/private';
 import { SdkProvider, IoHostSdkLogger } from '../api/aws-auth/private';
 import { Bootstrapper } from '../api/bootstrap';
 import type { ICloudAssemblySource } from '../api/cloud-assembly';
 import { CachedCloudAssembly, StackSelectionStrategy } from '../api/cloud-assembly';
 import type { StackAssembly } from '../api/cloud-assembly/private';
-import { ALL_STACKS, CloudAssemblySourceBuilder } from '../api/cloud-assembly/private';
+import { ALL_STACKS } from '../api/cloud-assembly/private';
+import { CloudAssemblySourceBuilder } from '../api/cloud-assembly/source-builder';
 import type { StackCollection } from '../api/cloud-assembly/stack-collection';
 import { Deployments } from '../api/deployments';
 import { DiffFormatter } from '../api/diff';
+import { detectStackDrift } from '../api/drift';
+import { DriftFormatter } from '../api/drift/drift-formatter';
 import type { IIoHost, IoMessageLevel, ToolkitAction } from '../api/io';
 import type { IoHelper } from '../api/io/private';
 import { asIoHelper, IO, SPAN, withoutColor, withoutEmojis, withTrimmedWhitespace } from '../api/io/private';
 import { CloudWatchLogEventMonitor, findCloudWatchLogGroups } from '../api/logs-monitor';
-import { PluginHost } from '../api/plugin';
+import { Mode, PluginHost } from '../api/plugin';
 import {
   AmbiguityError,
   ambiguousMovements,
@@ -184,7 +188,7 @@ export class Toolkit extends CloudAssemblySourceBuilder {
       const ioHelper = asIoHelper(this.ioHost, action);
       const services: SdkProviderServices = {
         ioHelper,
-        requestHandler: await makeRequestHandler(ioHelper, this.props.sdkConfig?.httpOptions),
+        requestHandler: sdkRequestHandler(this.props.sdkConfig?.httpOptions?.agent),
         logger: new IoHostSdkLogger(ioHelper),
         pluginHost: this.pluginHost,
       };
@@ -376,6 +380,79 @@ export class Toolkit extends CloudAssemblySourceBuilder {
   }
 
   /**
+   * Drift Action
+   */
+  public async drift(cx: ICloudAssemblySource, options: DriftOptions): Promise<{ [name: string]: DriftResult }> {
+    const ioHelper = asIoHelper(this.ioHost, 'drift');
+    const sdkProvider = await this.sdkProvider('drift');
+    const selectStacks = options.stacks ?? ALL_STACKS;
+    await using assembly = await assemblyFromSource(ioHelper, cx);
+    const stacks = await assembly.selectStacksV2(selectStacks);
+
+    const allDriftResults: { [name: string]: DriftResult } = {};
+    const unavailableDrifts = [];
+
+    for (const stack of stacks.stackArtifacts) {
+      const cfn = (await sdkProvider.forEnvironment(stack.environment, Mode.ForReading)).sdk.cloudFormation();
+      const driftResults = await detectStackDrift(cfn, ioHelper, stack.stackName);
+
+      if (!driftResults.StackResourceDrifts) {
+        const stackName = stack.displayName ?? stack.stackName;
+        unavailableDrifts.push(stackName);
+        await ioHelper.notify(IO.CDK_TOOLKIT_I4591.msg(`${stackName}: No drift results available`, { stack }));
+        continue;
+      }
+
+      const formatter = new DriftFormatter({ stack, resourceDrifts: driftResults.StackResourceDrifts });
+      const driftOutput = formatter.formatStackDrift();
+      const stackDrift = {
+        numResourcesWithDrift: driftOutput.numResourcesWithDrift,
+        numResourcesUnchecked: driftOutput.numResourcesUnchecked,
+        formattedDrift: {
+          unchanged: driftOutput.unchanged,
+          unchecked: driftOutput.unchecked,
+          modified: driftOutput.modified,
+          deleted: driftOutput.deleted,
+        },
+      };
+      allDriftResults[formatter.stackName] = stackDrift;
+
+      // header
+      await ioHelper.defaults.info(driftOutput.stackHeader);
+
+      // print the different sections at different levels
+      if (driftOutput.unchanged) {
+        await ioHelper.defaults.debug(driftOutput.unchanged);
+      }
+      if (driftOutput.unchecked) {
+        await ioHelper.defaults.debug(driftOutput.unchecked);
+      }
+      if (driftOutput.modified) {
+        await ioHelper.defaults.info(driftOutput.modified);
+      }
+      if (driftOutput.deleted) {
+        await ioHelper.defaults.info(driftOutput.deleted);
+      }
+
+      // main stack result
+      await ioHelper.notify(IO.CDK_TOOLKIT_I4590.msg(driftOutput.summary, {
+        stack,
+        drift: stackDrift,
+      }));
+    }
+
+    // print summary
+    const totalDrifts = Object.values(allDriftResults).reduce((total, current) => total + (current.numResourcesWithDrift ?? 0), 0);
+    const totalUnchecked = Object.values(allDriftResults).reduce((total, current) => total + (current.numResourcesUnchecked ?? 0), 0);
+    await ioHelper.defaults.result(`\n✨  Number of resources with drift: ${totalDrifts}${totalUnchecked ? ` (${totalUnchecked} unchecked)` : ''}`);
+    if (unavailableDrifts.length) {
+      await ioHelper.defaults.warn(`\n⚠️  Failed to check drift for ${unavailableDrifts.length} stack(s). Check log for more details.`);
+    }
+
+    return allDriftResults;
+  }
+
+  /**
    * List Action
    *
    * List selected stacks and their dependencies
@@ -409,7 +486,7 @@ export class Toolkit extends CloudAssemblySourceBuilder {
   /**
    * Helper to allow deploy being called as part of the watch action.
    */
-  private async _deploy(assembly: StackAssembly, action: 'deploy' | 'watch', options: ExtendedDeployOptions = {}): Promise<DeployResult> {
+  private async _deploy(assembly: StackAssembly, action: 'deploy' | 'watch', options: PrivateDeployOptions = {}): Promise<DeployResult> {
     const ioHelper = asIoHelper(this.ioHost, action);
     const selectStacks = options.stacks ?? ALL_STACKS;
     const synthSpan = await ioHelper.span(SPAN.SYNTH_ASSEMBLY).begin({ stacks: selectStacks });
@@ -1139,7 +1216,7 @@ export class Toolkit extends CloudAssemblySourceBuilder {
   ): Promise<void> {
     // watch defaults to hotswap deployment
     const deploymentMethod = options.deploymentMethod ?? { method: 'hotswap' };
-    const deployOptions: ExtendedDeployOptions = {
+    const deployOptions: PrivateDeployOptions = {
       ...options,
       cloudWatchLogMonitor,
       deploymentMethod,

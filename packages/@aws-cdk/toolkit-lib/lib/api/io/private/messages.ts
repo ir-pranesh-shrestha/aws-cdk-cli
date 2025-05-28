@@ -6,6 +6,7 @@ import type { BootstrapEnvironmentProgress } from '../../../payloads/bootstrap-e
 import type { MissingContext, UpdatedContext } from '../../../payloads/context';
 import type { BuildAsset, DeployConfirmationRequest, PublishAsset, StackDeployProgress, SuccessfulDeployStackResult } from '../../../payloads/deploy';
 import type { StackDestroy, StackDestroyProgress } from '../../../payloads/destroy';
+import type { DriftResultPayload } from '../../../payloads/drift';
 import type { AssetBatchDeletionRequest } from '../../../payloads/gc';
 import type { HotswapDeploymentDetails, HotswapDeploymentAttempt, HotswappableChange, HotswapResult } from '../../../payloads/hotswap';
 import type { ResourceIdentificationRequest, ResourceImportRequest } from '../../../payloads/import';
@@ -16,7 +17,7 @@ import type { StackRollbackProgress } from '../../../payloads/rollback';
 import type { MfaTokenRequest, SdkTrace } from '../../../payloads/sdk';
 import type { StackActivity, StackMonitoringControlEvent } from '../../../payloads/stack-activity';
 import type { StackSelectionDetails } from '../../../payloads/synth';
-import type { AssemblyData, ConfirmationRequest, ContextProviderMessageSource, Duration, ErrorPayload, StackAndAssemblyData } from '../../../payloads/types';
+import type { AssemblyData, ConfirmationRequest, ContextProviderMessageSource, Duration, ErrorPayload, SingleStack, StackAndAssemblyData } from '../../../payloads/types';
 import type { FileWatchEvent, WatchSettings } from '../../../payloads/watch';
 
 /**
@@ -78,7 +79,7 @@ export const IO = {
     interface: 'ErrorPayload',
   }),
 
-  // 4: Diff (4xxx)
+  // 4: Diff (40xx - 44xx)
   CDK_TOOLKIT_I4000: make.trace<StackSelectionDetails>({
     code: 'CDK_TOOLKIT_I4000',
     description: 'Diff stacks is starting',
@@ -88,6 +89,18 @@ export const IO = {
     code: 'CDK_TOOLKIT_I4001',
     description: 'Output of the diff command',
     interface: 'DiffResult',
+  }),
+
+  // 4: Drift (45xx - 49xx)
+  CDK_TOOLKIT_I4590: make.result<DriftResultPayload>({
+    code: 'CDK_TOOLKIT_I4590',
+    description: 'Results of the drift command',
+    interface: 'DriftResultPayload',
+  }),
+  CDK_TOOLKIT_I4591: make.warn<SingleStack>({
+    code: 'CDK_TOOLKIT_I4591',
+    description: 'Missing drift result fort a stack.',
+    interface: 'SingleStack',
   }),
 
   // 5: Deploy & Watch (5xxx)
@@ -411,7 +424,7 @@ export const IO = {
   }),
   CDK_ASSEMBLY_I0042: make.debug<UpdatedContext>({
     code: 'CDK_ASSEMBLY_I0042',
-    description: 'Writing updated context',
+    description: 'Writing context updates',
     interface: 'UpdatedContext',
   }),
   CDK_ASSEMBLY_I0240: make.debug<MissingContext>({

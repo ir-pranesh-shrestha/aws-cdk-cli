@@ -1,6 +1,7 @@
 import * as path from 'path';
 import { App } from 'aws-cdk-lib/core';
 import * as fs from 'fs-extra';
+import { MemoryContext } from '../../../lib';
 import { RWLock } from '../../../lib/api/rwlock';
 import * as contextproviders from '../../../lib/context-providers';
 import { Toolkit } from '../../../lib/toolkit/toolkit';
@@ -50,9 +51,9 @@ describe('fromAssemblyBuilder', () => {
 
       return app.synth();
     }, {
-      context: {
+      contextStore: new MemoryContext({
         'external-context': 'yes',
-      },
+      }),
     });
   });
 
@@ -71,9 +72,9 @@ describe('fromAssemblyBuilder', () => {
 
       return app.synth();
     }, {
-      context: {
+      contextStore: new MemoryContext({
         'external-context': 'yes',
-      },
+      }),
       clobberEnv: false,
     });
   });
@@ -124,13 +125,10 @@ describe('fromAssemblyBuilder', () => {
     // GIVEN
     const provideContextValues = jest.spyOn(contextproviders, 'provideContextValues').mockImplementation(async (
       missingValues,
-      context,
       _sdk,
       _ioHelper,
     ) => {
-      for (const missing of missingValues) {
-        context.set(missing.key, 'provided');
-      }
+      return Object.fromEntries(missingValues.map(missing => [missing.key, 'provided']));
     });
 
     const cx = await appFixture(toolkit, 'uses-context-provider');
@@ -224,9 +222,9 @@ describe('fromCdkApp', () => {
   test('can provide context', async () => {
     // WHEN
     const cx = await appFixture(toolkit, 'external-context', {
-      context: {
+      contextStore: new MemoryContext({
         'externally-provided-bucket-name': 'amzn-s3-demo-bucket',
-      },
+      }),
     });
     await using assembly = await cx.produce();
     const stack = assembly.cloudAssembly.getStackByName('Stack1').template;

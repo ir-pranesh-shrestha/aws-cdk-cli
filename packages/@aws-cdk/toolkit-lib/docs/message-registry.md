@@ -72,6 +72,8 @@ Please let us know by [opening an issue](https://github.com/aws/aws-cdk-cli/issu
 | `CDK_TOOLKIT_E3900` | Resource import failed | `error` | {@link ErrorPayload} |
 | `CDK_TOOLKIT_I4000` | Diff stacks is starting | `trace` | {@link StackSelectionDetails} |
 | `CDK_TOOLKIT_I4001` | Output of the diff command | `info` | {@link DiffResult} |
+| `CDK_TOOLKIT_I4590` | Results of the drift command | `result` | {@link DriftResultPayload} |
+| `CDK_TOOLKIT_I4591` | Missing drift result fort a stack. | `warn` | {@link SingleStack} |
 | `CDK_TOOLKIT_I5000` | Provides deployment times | `info` | {@link Duration} |
 | `CDK_TOOLKIT_I5001` | Provides total time in deploy action, including synth and rollback | `info` | {@link Duration} |
 | `CDK_TOOLKIT_I5002` | Provides time for resource migration | `info` | {@link Duration} |
@@ -133,7 +135,7 @@ Please let us know by [opening an issue](https://github.com/aws/aws-cdk-cli/issu
 | `CDK_TOOLKIT_I0101` | A notice that is marked as informational | `info` | n/a |
 | `CDK_ASSEMBLY_I0010` | Generic environment preparation debug messages | `debug` | n/a |
 | `CDK_ASSEMBLY_W0010` | Emitted if the found framework version does not support context overflow | `warn` | n/a |
-| `CDK_ASSEMBLY_I0042` | Writing updated context | `debug` | {@link UpdatedContext} |
+| `CDK_ASSEMBLY_I0042` | Writing context updates | `debug` | {@link UpdatedContext} |
 | `CDK_ASSEMBLY_I0240` | Context lookup was stopped as no further progress was made.  | `debug` | {@link MissingContext} |
 | `CDK_ASSEMBLY_I0241` | Fetching missing context. This is an iterative message that may appear multiple times with different missing keys. | `debug` | {@link MissingContext} |
 | `CDK_ASSEMBLY_I1000` | Cloud assembly output starts | `debug` | n/a |
