@@ -811,6 +811,7 @@ const toolkitLib = configureProject(
         isolatedModules: false, // we use the respective tsc setting
       },
     },
+    majorVersion: 1,
     nextVersionCommand: 'tsx ../../../projenrc/next-version.ts maybeRc',
   }),
 );
@@ -1343,6 +1344,7 @@ new JsiiBuild(cliLibAlpha, {
     packageName: 'awscdkclilibalpha',
   },
   rosettaStrict: true,
+  rosettaDependencies: ['aws-cdk-lib@^2'],
   stability: Stability.DEPRECATED,
   composite: true,
   excludeTypescript: CLI_LIB_EXCLUDE_PATTERNS,
