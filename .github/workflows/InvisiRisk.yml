@@ -2,7 +2,7 @@ name: AWS x InvisiRisk
 
 on:
   schedule:
-    - cron: '45 2 * * *'  # Runs daily at 8:30 AM Nepal Time
+    - cron: '15 0 * * 1'  # every Monday at 12:15 AM UTC (6:00 AM NPT)
   workflow_dispatch:
 
 permissions:
