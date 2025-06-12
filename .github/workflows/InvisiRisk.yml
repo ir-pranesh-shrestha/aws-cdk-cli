@@ -1,8 +1,6 @@
-name: AWS x InvisiRisk 
+name: AWS x InvisiRisk
 
 on:
-  schedule:
-    - cron: '15 0 * * 1'  # every Monday at 12:15 AM UTC (6:00 AM NPT)
   workflow_dispatch:
 
 permissions:
@@ -12,46 +10,34 @@ permissions:
   actions: write
 
 jobs:
-  sync-and-build:
+  test:
     runs-on: ubuntu-latest
-    name: Sync fork and Run build
-
+    name: Run build
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-
-      - name: Set up Git
-        run: |
-          git config user.name "ir-pranesh-shrestha"
-          git config user.email "pranesh.shrestha@invisirisk.com"
-          
-      - name: Add upstream and sync fork
-        run: |
-          git remote add upstream https://github.com/aws/aws-cdk-cli.git
-          git fetch upstream
-          git checkout main
-          git merge upstream/main --no-edit
-          git push https://x-access-token:${{ secrets.MY_PAT }}@github.com/ir-pranesh-shrestha/aws-cdk-cli main
-          
       - name: Setup PSE
-        uses: invisirisk/pse-action@latest
+        uses: invisirisk/pse-action@v1.0.29
         with:
-          api_url: "https://app.invisirisk.com"
-          app_token: ${{ secrets.IR_API_KEY_PROD }}
+          api_url: "https://app.stage.invisirisk.com"
+          app_token: ${{ secrets.IR_API_KEY_STAGE }}
+
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: '18'
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps
+        run: npm install
 
       - name: Cleanup PSE
         if: always()
-        uses: invisirisk/pse-action@latest
+        uses: invisirisk/pse-action@v1.0.29
         with:
           cleanup: "true"
+          
+      - name: Gather Job status
+        if: always()
+        uses: invisirisk/pse-action@v1.0.29
+        with:
+          get_jobs: "true"
