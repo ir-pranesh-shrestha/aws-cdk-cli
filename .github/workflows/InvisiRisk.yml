@@ -35,3 +35,4 @@ jobs:
         uses: invisirisk/pse-action@test
         with:
           cleanup: "true"
+          debug: "true"
