@@ -35,4 +35,5 @@ jobs:
         uses: invisirisk/pse-action@test
         with:
           cleanup: "true"
+          cleanup_step_name: "Cleanup PSE"
           debug: "true"
