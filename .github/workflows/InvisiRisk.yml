@@ -15,19 +15,16 @@ jobs:
     name: Sync fork and Run build
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-
-          
+                
       - name: Setup PSE
-        uses: invisirisk/pse-action@latest
+        uses: invisirisk/pse-action@test
         with:
           api_url: "https://app.dev.invisirisk.com"
           app_token: ${{ secrets.IR_API_KEY_DEV }}
 
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -38,6 +35,6 @@ jobs:
 
       - name: Cleanup PSE
         if: always()
-        uses: invisirisk/pse-action@latest
+        uses: invisirisk/pse-action@test
         with:
           cleanup: "true"
