@@ -232,20 +232,7 @@ const repoProject = new yarn.Monorepo({
       },
       semanticTitleOptions: {
         types: ['feat', 'fix', 'chore', 'refactor', 'test', 'docs', 'revert'],
-        scopes: [
-          'cdk-assets',
-          'cli',
-          'cli-lib-alpha',
-          'cli-plugin-contract',
-          'cloud-assembly-schema',
-          'cloudformation-diff',
-          'deps',
-          'dev-deps',
-          'docs',
-          'integ-runner',
-          'integ-testing',
-          'toolkit-lib',
-        ],
+        scopes: [], // actually set at the bottom of the file to be based on monorepo packages
       },
     },
   },
@@ -616,6 +603,7 @@ const cdkAssets = configureProject(
       `@aws-sdk/lib-storage@${CLI_SDK_V3_RANGE}`,
       '@smithy/config-resolver',
       '@smithy/node-config-provider',
+      'minimatch@10.0.1',
     ],
     devDeps: [
       '@types/archiver',
@@ -807,6 +795,7 @@ const toolkitLib = configureProject(
         lib: ['es2022', 'esnext.disposable'],
         module: 'NodeNext',
         isolatedModules: true,
+        declarationMap: true,
       },
     },
     tsJestOptions: {
@@ -1004,7 +993,6 @@ const cli = configureProject(
       nodeBundle,
       yargsGen,
       cliPluginContract,
-      '@octokit/rest',
       '@types/archiver',
       '@types/fs-extra@^9',
       '@types/mockery',
@@ -1385,7 +1373,9 @@ const cdkCliWrapper = configureProject(
     name: '@aws-cdk/cdk-cli-wrapper',
     description: 'CDK CLI Wrapper Library',
     srcdir: 'lib',
-    devDeps: [],
+    deps: [
+      cloudAssemblySchema.customizeReference({ versionType: 'any-future' }),
+    ],
     nextVersionCommand: `tsx ../../../projenrc/next-version.ts copyVersion:../../../${cliPackageJson}`,
     releasableCommits: transitiveToolkitPackages('@aws-cdk/cdk-cli-wrapper'),
 
@@ -1452,13 +1442,14 @@ const integRunner = configureProject(
       cli.customizeReference({ versionType: 'exact' }),
       cdkAssets.customizeReference({ versionType: 'exact' }),
       cloudFormationDiff.customizeReference({ versionType: 'exact' }),
+      toolkitLib.customizeReference({ versionType: 'exact' }),
       'workerpool@^6',
       'chokidar@^3',
       'chalk@^4',
       'fs-extra@^9',
       'yargs@^16',
       '@aws-cdk/aws-service-spec',
-      '@aws-sdk/client-cloudformation@^3',
+      `@aws-sdk/client-cloudformation@${CLI_SDK_V3_RANGE}`,
     ],
     devDeps: [
       'aws-cdk-lib',
@@ -1475,6 +1466,12 @@ const integRunner = configureProject(
       compilerOptions: {
         ...defaultTsOptions,
         lib: ['es2020', 'dom'],
+        isolatedModules: true,
+      },
+    },
+    tsJestOptions: {
+      transformOptions: {
+        isolatedModules: false, // we use the respective tsc setting
       },
     },
     jestOptions: jestOptionsForProject({
@@ -1552,7 +1549,7 @@ const cliInteg = configureProject(
     srcdir: '.',
     libdir: '.',
     deps: [
-      '@octokit/rest@^18.12.0',
+      '@octokit/rest@^20', // newer versions are ESM only
       `@aws-sdk/client-codeartifact@${CLI_SDK_V3_RANGE}`,
       `@aws-sdk/client-cloudformation@${CLI_SDK_V3_RANGE}`,
       `@aws-sdk/client-ecr@${CLI_SDK_V3_RANGE}`,
@@ -1705,6 +1702,11 @@ new CdkCliIntegTestsWorkflow(repo, {
     endpoint: '${{ vars.CDK_ATMOSPHERE_PROD_ENDPOINT }}',
     pool: '${{ vars.CDK_INTEG_ATMOSPHERE_POOL }}',
   },
+  additionalNodeVersionsToTest: [
+    // 18.18 introduces `Symbol.dispose`, and we need to make sure that we work on older versions as well
+    '18.17.0',
+    '20', '22',
+  ],
 });
 
 new CodeCovWorkflow(repo, {
@@ -1720,5 +1722,25 @@ new LargePrChecker(repo, {
 });
 
 ((repo.github?.tryFindWorkflow('integ')?.getJob('prepare') as Job | undefined)?.env ?? {}).DEBUG = 'true';
+
+// Set allowed scopes based on monorepo packages
+const disallowed = new Set([
+  'cdk', // use aws-cdk or cli
+  'user-input-gen', // use cli
+]);
+repoProject.github?.tryFindWorkflow('pull-request-lint')?.file?.patch(
+  pj.JsonPatch.replace('/jobs/validate/steps/0/with/scopes', [
+    'cli',
+    'deps',
+    'dev-deps',
+    'docs',
+    'integ-testing',
+    'toolkit-lib',
+    ...repoProject.subprojects
+      .filter(p => p instanceof yarn.TypeScriptWorkspace)
+      .map(p => p.name)
+      .map(n => n.split('/').pop()),
+  ].filter(s => s && !disallowed.has(s)).sort().join('\n')),
+);
 
 repo.synth();

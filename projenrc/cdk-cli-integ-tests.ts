@@ -77,6 +77,15 @@ export interface CdkCliIntegTestsWorkflowProps {
    * @default - the cli integ test package determines a sensible default
    */
   readonly maxWorkers?: string;
+
+  /**
+   * Additional Node versions to some particular suites against.
+   *
+   * Use the version syntax of `setup-node`. `'lts/*'` is always included automatically.
+   *
+   * @see https://github.com/actions/setup-node?tab=readme-ov-file#supported-version-syntax
+   */
+  readonly additionalNodeVersionsToTest?: string[];
 }
 
 /**
@@ -256,6 +265,17 @@ export class CdkCliIntegTestsWorkflow extends Component {
 
     // We create a matrix job for the test.
     // This job will run all the different test suites in parallel.
+    const matrixInclude: github.workflows.JobMatrix['include'] = [];
+    const matrixExclude: github.workflows.JobMatrix['exclude'] = [];
+
+    // In addition to the default runs, run these suites under different Node versions
+    matrixInclude.push(...['init-typescript-app', 'toolkit-lib-integ-tests'].flatMap(
+      suite => (props.additionalNodeVersionsToTest ?? []).map(node => ({ suite, node }))));
+
+    // We are finding that Amplify works on Node 20, but fails on Node >=22.10. Remove the 'lts/*' test and use a Node 20 for now.
+    matrixExclude.push({ suite: 'tool-integrations', node: 'lts/*' });
+    matrixInclude.push({ suite: 'tool-integrations', node: 20 });
+
     const JOB_INTEG_MATRIX = 'integ_matrix';
     runTestsWorkflow.addJob(JOB_INTEG_MATRIX, {
       environment: props.testEnvironment,
@@ -296,7 +316,10 @@ export class CdkCliIntegTestsWorkflow extends Component {
               'init-typescript-lib',
               'tool-integrations',
             ],
+            node: ['lts/*'],
           },
+          include: matrixInclude,
+          exclude: matrixExclude,
         },
       },
       steps: [
@@ -306,6 +329,13 @@ export class CdkCliIntegTestsWorkflow extends Component {
           with: {
             name: 'build-artifact',
             path: 'packages',
+          },
+        },
+        {
+          name: 'Setup Node.js',
+          uses: 'actions/setup-node@v4',
+          with: {
+            'node-version': '${{ matrix.node }}',
           },
         },
         {
@@ -431,7 +461,7 @@ export class CdkCliIntegTestsWorkflow extends Component {
           uses: 'actions/upload-artifact@v4.4.0',
           id: 'logupload',
           with: {
-            name: 'logs-${{ matrix.suite }}',
+            name: 'logs-${{ matrix.suite }}-${{ matrix.node }}',
             path: 'logs/',
             overwrite: 'true',
           },
