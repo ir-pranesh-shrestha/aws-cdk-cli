@@ -37,3 +37,16 @@ jobs:
           cleanup: "true"
           cleanup_step_name: "Cleanup PSE"
           debug: "true"
+
+  gather_analytics:
+     runs-on: ubuntu-latest
+     name: Gather Analytics
+     needs: test
+     if: always()
+     steps:
+      - name: Gather Status
+        uses: invisirisk/pse-action@test
+        with:
+          api_url: "https://app.stage.invisirisk.com"
+          app_token: ${{ secrets.IR_API_KEY_STAGE }}
+          send_job_status: "true"
