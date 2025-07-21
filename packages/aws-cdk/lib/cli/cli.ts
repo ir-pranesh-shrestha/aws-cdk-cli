@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-shadow */ // yargs
 import * as cxapi from '@aws-cdk/cx-api';
 import type { ChangeSetDeployment, DeploymentMethod, DirectDeployment } from '@aws-cdk/toolkit-lib';
-import { ToolkitError } from '@aws-cdk/toolkit-lib';
+import { ToolkitError, Toolkit } from '@aws-cdk/toolkit-lib';
 import * as chalk from 'chalk';
 import { CdkToolkit, AssetBuildTime } from './cdk-toolkit';
 import { displayVersionMessage } from './display-version';
@@ -25,6 +25,7 @@ import type { Settings } from '../api/settings';
 import { contextHandler as context } from '../commands/context';
 import { docs } from '../commands/docs';
 import { doctor } from '../commands/doctor';
+import { displayFlags } from '../commands/flags';
 import { cliInit, printAvailableTemplates } from '../commands/init';
 import { getMigrateScanType } from '../commands/migrate';
 import { execProgram, CloudExecutable } from '../cxapp';
@@ -265,6 +266,7 @@ export async function exec(args: string[], synthesizer?: Synthesizer): Promise<n
           changeSet: args['change-set'],
           toolkitStackName: toolkitStackName,
           importExistingResources: args.importExistingResources,
+          includeMoves: args['include-moves'],
         });
 
       case 'drift':
@@ -431,6 +433,20 @@ export async function exec(args: string[], synthesizer?: Synthesizer): Promise<n
           confirm: args.confirm,
         });
 
+      case 'flags':
+        ioHost.currentAction = 'flags';
+        if (!configuration.settings.get(['unstable']).includes('flags')) {
+          throw new ToolkitError('Unstable feature use: \'flags\' is unstable. It must be opted in via \'--unstable\', e.g. \'cdk flags --unstable=flags\'');
+        }
+
+        const toolkit = new Toolkit({
+          ioHost,
+          toolkitStackName,
+          unstableFeatures: configuration.settings.get(['unstable']),
+        });
+        const flagsData = await toolkit.flags(cloudExecutable);
+        return displayFlags(flagsData, ioHelper);
+
       case 'synthesize':
       case 'synth':
         ioHost.currentAction = 'synth';
@@ -462,13 +478,16 @@ export async function exec(args: string[], synthesizer?: Synthesizer): Promise<n
 
       case 'cli-telemetry':
         ioHost.currentAction = 'cli-telemetry';
-        if (args.enable === undefined && args.disable === undefined) {
-          throw new ToolkitError('Must specify either \'--enable\' or \'--disable\'');
+        if (args.enable === undefined && args.disable === undefined && args.status === undefined) {
+          throw new ToolkitError('Must specify \'--enable\', \'--disable\', or \'--status\'');
         }
 
-        const enable = args.enable ?? !args.disable;
-        return cli.cliTelemetry(enable);
-
+        if (args.status) {
+          return cli.cliTelemetryStatus();
+        } else {
+          const enable = args.enable ?? !args.disable;
+          return cli.cliTelemetry(enable);
+        }
       case 'init':
         ioHost.currentAction = 'init';
         const language = configuration.settings.get(['language']);
