@@ -32,7 +32,7 @@ export async function makeConfig(): Promise<CliConfig> {
       'proxy': { type: 'string', desc: 'Use the indicated proxy. Will read from HTTPS_PROXY environment variable if not specified', requiresArg: true },
       'ca-bundle-path': { type: 'string', desc: 'Path to CA certificate to use when validating HTTPS requests. Will read from AWS_CA_BUNDLE environment variable if not specified', requiresArg: true },
       'ec2creds': { type: 'boolean', alias: 'i', default: undefined, desc: 'Force trying to fetch EC2 instance credentials. Default: guess EC2 instance status' },
-      'version-reporting': { type: 'boolean', desc: 'Include the "AWS::CDK::Metadata" resource in synthesized templates (enabled by default)', default: undefined },
+      'version-reporting': { type: 'boolean', desc: 'Disable CLI telemetry and do not include the "AWS::CDK::Metadata" resource in synthesized templates (enabled by default)', default: undefined, alias: 'telemetry' },
       'path-metadata': { type: 'boolean', desc: 'Include "aws:cdk:path" CloudFormation metadata for each resource (enabled by default)', default: undefined },
       'asset-metadata': { type: 'boolean', desc: 'Include "aws:asset:*" CloudFormation metadata for resources that uses assets (enabled by default)', default: undefined },
       'role-arn': { type: 'string', alias: 'r', desc: 'ARN of Role to use when invoking CloudFormation', default: undefined, requiresArg: true },
@@ -42,6 +42,7 @@ export async function makeConfig(): Promise<CliConfig> {
       'no-color': { type: 'boolean', desc: 'Removes colors and other style from console output', default: false },
       'ci': { type: 'boolean', desc: 'Force CI detection. If CI=true then logs will be sent to stdout instead of stderr', default: YARGS_HELPERS.isCI() },
       'unstable': { type: 'array', desc: 'Opt in to unstable features. The flag indicates that the scope and API of a feature might still change. Otherwise the feature is generally production ready and fully supported. Can be specified multiple times.', default: [] },
+      'telemetry-file': { type: 'string', desc: 'Send telemetry data to a local file.', default: undefined },
     },
     commands: {
       'list': {
@@ -114,6 +115,15 @@ export async function makeConfig(): Promise<CliConfig> {
       },
       'flags': {
         description: 'View and toggle feature flags.',
+        arg: {
+          name: 'FLAGNAME',
+          variadic: true,
+        },
+        options: {
+          value: { type: 'string', desc: 'The value the user would like to set the feature flag configuration to', requiresArg: true },
+          set: { type: 'boolean', desc: 'Signifies the user would like to modify their feature flag configuration', requiresArg: false },
+          all: { type: 'boolean', desc: 'Modify or view all feature flags', requiresArg: false },
+        },
       },
       'deploy': {
         description: 'Deploys the stack(s) named STACKS into your AWS account',
