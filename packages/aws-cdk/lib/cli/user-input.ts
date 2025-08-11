@@ -637,6 +637,36 @@ export interface FlagsOptions {
   readonly all?: boolean;
 
   /**
+   * Modify unconfigured feature flags
+   *
+   * @default - undefined
+   */
+  readonly unconfigured?: boolean;
+
+  /**
+   * Change flags to recommended states
+   *
+   * @default - undefined
+   */
+  readonly recommended?: boolean;
+
+  /**
+   * Change flags to default state
+   *
+   * @default - undefined
+   */
+  readonly default?: boolean;
+
+  /**
+   * Interactive option for the flags command
+   *
+   * aliases: i
+   *
+   * @default - undefined
+   */
+  readonly interactive?: boolean;
+
+  /**
    * Positional argument for flags
    */
   readonly FLAGNAME?: Array<string>;
