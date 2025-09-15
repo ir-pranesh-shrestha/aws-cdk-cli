@@ -245,6 +245,7 @@ const repoProject = new yarn.Monorepo({
   releaseOptions: {
     publishToNpm: true,
     releaseTrigger: pj.release.ReleaseTrigger.workflowDispatch(),
+    nodeVersion: '24.x',
   },
 
   depsUpgradeOptions: {
@@ -341,6 +342,8 @@ function genericCdkProps(props: GenericProps = {}) {
     authorUrl: 'https://aws.amazon.com',
     authorOrganization: true,
     releasableCommits: pj.ReleasableCommits.featuresAndFixes('.'),
+    releaseEnvironment: 'releasing',
+    npmTrustedPublishing: true,
     jestOptions: {
       configFilePath: 'jest.config.json',
       junitReporting: false,
@@ -415,6 +418,7 @@ new JsiiBuild(cloudAssemblySchema, {
   publishToPypi: {
     distName: 'aws-cdk.cloud-assembly-schema',
     module: 'aws_cdk.cloud_assembly_schema',
+    trustedPublishing: true,
   },
   pypiClassifiers: [
     'Framework :: AWS CDK',
@@ -1411,6 +1415,7 @@ new JsiiBuild(cliLibAlpha, {
   publishToPypi: {
     distName: 'aws-cdk.cli-lib-alpha',
     module: 'aws_cdk.cli_lib_alpha',
+    trustedPublishing: true,
   },
   pypiClassifiers: [
     'Framework :: AWS CDK',
